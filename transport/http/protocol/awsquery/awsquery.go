@@ -88,7 +88,7 @@ func (p *Protocol) SerializeRequest(
 		in.Serialize(ss)
 	}
 
-	sreq, err := req.SetStream(bytes.NewReader(ss.Bytes()))
+	sreq, err := req.SetStreamWithLength(bytes.NewReader(ss.Bytes()))
 	if err != nil {
 		return fmt.Errorf("set stream: %w", err)
 	}

@@ -154,6 +154,25 @@ func (r *Request) SetStream(reader io.Reader) (rc *Request, err error) {
 	return rc, err
 }
 
+// SetStreamWithLength sets the request stream like SetStream, and additionally
+// sets ContentLength when the stream's length can be determined. If it cannot
+// (e.g. a non-seekable stream), ContentLength is left unchanged so an
+// explicitly provided value is preserved.
+func (r *Request) SetStreamWithLength(reader io.Reader) (rc *Request, err error) {
+	rc, err = r.SetStream(reader)
+	if err != nil {
+		return rc, err
+	}
+
+	if n, ok, err := rc.StreamLength(); err != nil {
+		return rc, err
+	} else if ok {
+		rc.ContentLength = n
+	}
+
+	return rc, nil
+}
+
 // Build returns a build standard HTTP request value from the Smithy request.
 // The request's stream is wrapped in a safe container that allows it to be
 // reused for subsequent attempts.

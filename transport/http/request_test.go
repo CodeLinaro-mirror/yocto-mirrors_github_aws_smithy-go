@@ -218,3 +218,45 @@ func TestRequestSetStream(t *testing.T) {
 		})
 	}
 }
+
+func TestRequestSetStreamWithLength(t *testing.T) {
+	cases := map[string]struct {
+		reader              io.Reader
+		expectContentLength int64
+	}{
+		"nil stream": {
+			expectContentLength: 0,
+		},
+		"empty seekable stream": {
+			reader:              bytes.NewReader([]byte{}),
+			expectContentLength: 0,
+		},
+		"unseekable stream with len": {
+			reader:              bytes.NewBuffer([]byte("abc123")),
+			expectContentLength: 6,
+		},
+		"seekable stream": {
+			reader:              bytes.NewReader([]byte("abc123")),
+			expectContentLength: 6,
+		},
+		// Length not determinable: left at default (-1) so a user-set value survives.
+		"unseekable no len stream": {
+			reader:              io.NopCloser(bytes.NewBuffer([]byte("abc123"))),
+			expectContentLength: -1,
+		},
+	}
+
+	for name, c := range cases {
+		t.Run(name, func(t *testing.T) {
+			req := NewStackRequest().(*Request)
+			req, err := req.SetStreamWithLength(c.reader)
+			if err != nil {
+				t.Fatalf("expect no error, got %v", err)
+			}
+
+			if e, a := c.expectContentLength, req.ContentLength; e != a {
+				t.Errorf("expect content-length %v, got %v", e, a)
+			}
+		})
+	}
+}

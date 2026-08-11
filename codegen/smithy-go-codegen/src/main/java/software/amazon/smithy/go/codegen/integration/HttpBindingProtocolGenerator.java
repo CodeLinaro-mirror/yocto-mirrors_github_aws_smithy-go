@@ -565,7 +565,7 @@ public abstract class HttpBindingProtocolGenerator implements ProtocolGenerator 
      */
     protected void writeSetStream(GoWriter writer, String operand) {
         writer.write("""
-                if request, err = request.SetStream($L); err != nil {
+                if request, err = request.SetStreamWithLength($L); err != nil {
                     return out, metadata, &smithy.SerializationError{Err: err}
                 }""", operand);
     }

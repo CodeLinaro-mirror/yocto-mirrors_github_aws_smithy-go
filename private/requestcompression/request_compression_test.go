@@ -95,6 +95,48 @@ func TestRequestCompression(t *testing.T) {
 	}
 }
 
+// TestRequestCompressionSetsContentLength verifies that, once the body is
+// compressed, ContentLength is updated to the compressed size (overwriting the
+// original length) so the correct Content-Length is sent.
+func TestRequestCompressionSetsContentLength(t *testing.T) {
+	original := strings.Repeat("Hi, world! ", 100)
+
+	req := http.NewStackRequest().(*http.Request)
+	req, _ = req.SetStream(strings.NewReader(original))
+
+	m := requestCompression{
+		compressAlgorithms: []string{GZIP},
+	}
+
+	var updatedRequest *http.Request
+	_, _, err := m.HandleSerialize(context.Background(),
+		middleware.SerializeInput{Request: req},
+		middleware.SerializeHandlerFunc(func(ctx context.Context, input middleware.SerializeInput) (
+			out middleware.SerializeOutput, metadata middleware.Metadata, err error) {
+			updatedRequest = input.Request.(*http.Request)
+			return out, metadata, nil
+		}),
+	)
+	if err != nil {
+		t.Fatalf("expect no error, got %v", err)
+	}
+
+	size, ok, err := updatedRequest.StreamLength()
+	if err != nil {
+		t.Fatalf("expect no error getting stream length, got %v", err)
+	}
+	if !ok {
+		t.Fatal("expect compressed stream length to be known")
+	}
+	if e, a := size, updatedRequest.ContentLength; e != a {
+		t.Errorf("expect ContentLength %d, got %d", e, a)
+	}
+	// And it should reflect compression, i.e. differ from the original length.
+	if updatedRequest.ContentLength == int64(len(original)) {
+		t.Errorf("expect ContentLength to be updated to compressed size, still %d", updatedRequest.ContentLength)
+	}
+}
+
 func testUnzipContent(content io.Reader, expect []byte, disableRequestCompression bool, requestMinCompressionSizeBytes int64) error {
 	if disableRequestCompression || int64(len(expect)) < requestMinCompressionSizeBytes {
 		b, err := io.ReadAll(content)
