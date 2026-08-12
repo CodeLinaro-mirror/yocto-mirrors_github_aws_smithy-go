@@ -229,22 +229,11 @@ public class HttpProtocolUnitTestResponseGenerator extends HttpProtocolUnitTestG
 
     @Override
     public void generateSerdBenchmarkIteration(GoWriter writer, String clientName) {
-        writer.addUseImports(SmithyGoDependency.CONTEXT);
-        writer.addUseImports(SmithyGoDependency.SMITHY_HTTP_TRANSPORT);
-        writer.addUseImports(SmithyGoDependency.NET_HTTP);
         writer.writeGoTemplate("""
-                resp := &smithyhttp.Response{
-                    Response: &http.Response{
-                        StatusCode:    c.StatusCode,
-                        Header:        c.Header.Clone(),
-                        ContentLength: int64(len(c.Body)),
-                        Body:          io.NopCloser(bytes.NewReader(c.Body)),
-                    },
-                }
                 output := &$outputSymbol:T{}
 
                 deserializeStart := time.Now()
-                err := protocol.DeserializeResponse(context.Background(), opSchema, TypeRegistry, resp, output)
+                err := protocol.DeserializeResponse(ctx, opSchema, TypeRegistry, resp, output)
                 if err != nil {
                     t.Fatalf("error when running deserd test for %s: %v", name, err)
                 }
@@ -269,12 +258,27 @@ public class HttpProtocolUnitTestResponseGenerator extends HttpProtocolUnitTestG
                 model.expectShape(operation.getOutputShape()), service);
 
         writer.addUseImports(SmithyGoDependency.SMITHY);
-        writer.addUseImports(SmithyGoDependency.BYTES);
-        writer.addUseImports(SmithyGoDependency.IO);
+        writer.addUseImports(SmithyGoDependency.CONTEXT);
+        writer.addUseImports(SmithyGoDependency.NET_HTTP);
+        writer.addUseImports(SmithyGoDependency.SMITHY_HTTP_TRANSPORT);
         writer.addImport(settings.getModuleName() + "/schemas", "schemas");
         writer.write("""
                 protocol := New(Options{}).options.Protocol
                 opSchema := smithy.NewOperationSchema($L, $L, $L)
+                ctx := context.Background()
+
+                // One response and one body for the whole case. serdBenchmarkBody hands the
+                // protocol its bytes without a copy and without being consumed, so every
+                // iteration can deserialize the same object: response setup, and the garbage
+                // it would otherwise generate 10,000 times, stays out of the measurement.
+                resp := &smithyhttp.Response{
+                    Response: &http.Response{
+                        StatusCode:    c.StatusCode,
+                        Header:        c.Header,
+                        ContentLength: int64(len(c.Body)),
+                        Body:          newSerdBenchmarkBody(c.Body),
+                    },
+                }
                 """, opSchemaName, inputSchemaName, outputSchemaName);
     }
 

@@ -116,22 +116,27 @@ func (p *Protocol) DeserializeResponse(
 		return nil
 	}
 
-	// a blob @httpPayload is handed to the caller by reference, so its buffer
-	// can't be reused
-	var buf *bytes.Buffer
-	var err error
-	if internalhttpbinding.HasBlobPayload(op.Output) {
-		if buf, err = internalserde.ReadPayloadBlob(resp.Body, resp.ContentLength); err != nil {
+	var payload []byte
+	if b, ok := internalserde.InMemoryPayload(resp.Body); ok {
+		// the body is already in memory and willing to expose it: no buffering
+		payload = b
+	} else if internalhttpbinding.HasBlobPayload(op.Output) {
+		// a blob @httpPayload is handed to the caller by reference, so its
+		// buffer can't be reused
+		buf, err := internalserde.ReadPayloadBlob(resp.Body, resp.ContentLength)
+		if err != nil {
 			return &smithy.DeserializationError{Err: err}
 		}
+		payload = buf.Bytes()
 	} else {
-		if buf, err = p.bufs.Get(resp.Body); err != nil {
+		buf, err := p.bufs.Get(resp.Body)
+		if err != nil {
 			return &smithy.DeserializationError{Err: err}
 		}
 		defer p.bufs.Put(buf)
+		payload = buf.Bytes()
 	}
 
-	payload := buf.Bytes()
 	deser := internalhttpbinding.NewShapeDeserializer(resp.Response, bd(payload), payload)
 	if err := out.Deserialize(deser); err != nil {
 		return &smithy.DeserializationError{Err: err}

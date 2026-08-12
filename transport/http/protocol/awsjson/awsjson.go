@@ -12,6 +12,7 @@ import (
 	"github.com/aws/smithy-go"
 	internalerrors "github.com/aws/smithy-go/internal/errors"
 	internales "github.com/aws/smithy-go/internal/eventstream"
+	internalserde "github.com/aws/smithy-go/internal/serde"
 	internalsync "github.com/aws/smithy-go/internal/sync"
 	smithyio "github.com/aws/smithy-go/io"
 	"github.com/aws/smithy-go/traits"
@@ -140,13 +141,21 @@ func (p *Protocol) DeserializeResponse(
 		return nil
 	}
 
-	buf, err := p.bufs.Get(resp.Body)
-	if err != nil {
-		return &smithy.DeserializationError{Err: err}
+	var payload []byte
+	if b, ok := internalserde.InMemoryPayload(resp.Body); ok {
+		// the body is already in memory and willing to expose it: no buffering
+		payload = b
+	} else {
+		// NOTE: payload aliases the pooled buffer, which is reused for the next
+		// response, so nothing may retain a reference into it past this call.
+		buf, err := p.bufs.Get(resp.Body)
+		if err != nil {
+			return &smithy.DeserializationError{Err: err}
+		}
+		defer p.bufs.Put(buf)
+		payload = buf.Bytes()
 	}
-	defer p.bufs.Put(buf)
 
-	payload := buf.Bytes()
 	if len(payload) == 0 {
 		return nil
 	}
