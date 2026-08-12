@@ -89,8 +89,6 @@ func (m requestCompression) HandleSerialize(
 				}
 				*req = *newReq
 
-				req.ContentLength = int64(len(compressedBytes))
-
 				if val := req.Header.Get("Content-Encoding"); val != "" {
 					req.Header.Set("Content-Encoding", fmt.Sprintf("%s, %s", val, algorithm))
 				} else {

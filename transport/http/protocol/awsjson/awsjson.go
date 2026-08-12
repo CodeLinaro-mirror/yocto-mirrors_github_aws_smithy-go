@@ -96,7 +96,7 @@ func (p *Protocol) SerializeRequest(
 	}
 
 	if schema.Input == nil {
-		sreq, err := req.SetStreamWithLength(strings.NewReader("{}"))
+		sreq, err := req.SetStream(strings.NewReader("{}"))
 		if err != nil {
 			return fmt.Errorf("set stream: %w", err)
 		}
@@ -107,7 +107,7 @@ func (p *Protocol) SerializeRequest(
 	ss := internaljson.NewShapeSerializer()
 	in.Serialize(ss)
 
-	sreq, err := req.SetStreamWithLength(bytes.NewReader(ss.Bytes()))
+	sreq, err := req.SetStream(bytes.NewReader(ss.Bytes()))
 	if err != nil {
 		return fmt.Errorf("set stream: %w", err)
 	}

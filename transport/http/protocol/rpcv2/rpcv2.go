@@ -99,7 +99,7 @@ func (p *Protocol) SerializeRequest(
 
 	req.Header.Set("Content-Type", "application/cbor")
 
-	sreq, err := req.SetStreamWithLength(bytes.NewReader(payload))
+	sreq, err := req.SetStream(bytes.NewReader(payload))
 	if err != nil {
 		return fmt.Errorf("set stream: %w", err)
 	}

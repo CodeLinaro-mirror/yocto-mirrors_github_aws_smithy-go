@@ -137,7 +137,7 @@ func (s *ShapeSerializer) setBody(body io.Reader, contentType string) error {
 	if s.request.Header.Get("Content-Type") == "" {
 		s.request.Header.Set("Content-Type", contentType)
 	}
-	sreq, err := s.request.SetStreamWithLength(body)
+	sreq, err := s.request.SetStream(body)
 	if err != nil {
 		return fmt.Errorf("set stream: %w", err)
 	}

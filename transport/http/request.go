@@ -118,6 +118,9 @@ func (r *Request) IsStreamSeekable() bool {
 // SetStream returns a clone of the request with the stream set to the provided
 // reader. May return an error if the provided reader is seekable but returns
 // an error.
+//
+// ContentLength is set to the stream's length when it can be determined, and
+// left unchanged otherwise.
 func (r *Request) SetStream(reader io.Reader) (rc *Request, err error) {
 	rc = r.Clone()
 
@@ -151,26 +154,13 @@ func (r *Request) SetStream(reader io.Reader) (rc *Request, err error) {
 	rc.isStreamSeekable = isStreamSeekable
 	rc.streamStartPos = streamStartPos
 
-	return rc, err
-}
-
-// SetStreamWithLength sets the request stream like SetStream, and additionally
-// sets ContentLength when the stream's length can be determined. If it cannot
-// (e.g. a non-seekable stream), ContentLength is left unchanged so an
-// explicitly provided value is preserved.
-func (r *Request) SetStreamWithLength(reader io.Reader) (rc *Request, err error) {
-	rc, err = r.SetStream(reader)
-	if err != nil {
-		return rc, err
-	}
-
 	if n, ok, err := rc.StreamLength(); err != nil {
 		return rc, err
 	} else if ok {
 		rc.ContentLength = n
 	}
 
-	return rc, nil
+	return rc, err
 }
 
 // Build returns a build standard HTTP request value from the Smithy request.

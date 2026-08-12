@@ -16,7 +16,7 @@ type ComputeContentLength struct {
 // stack's Build step.
 //
 // Deprecated: Content-Length is now set when the request body is set via
-// Request.SetStreamWithLength, so this middleware is no longer used.
+// Request.SetStream, so this middleware is no longer used.
 func AddComputeContentLengthMiddleware(stack *middleware.Stack) error {
 	return stack.Build.Add(&ComputeContentLength{}, middleware.After)
 }

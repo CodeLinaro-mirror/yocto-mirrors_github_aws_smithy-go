@@ -60,7 +60,7 @@ final class SerializeMiddleware extends Rpc2SerializeRequestMiddleware {
                 }
 
                 payload := $reader:T($encode:T(cv))
-                if req, err = req.SetStreamWithLength(payload); err != nil {
+                if req, err = req.SetStream(payload); err != nil {
                     return out, metadata, &$error:T{Err: err}
                 }
 
