@@ -31,8 +31,8 @@ type ShapeDeserializer struct {
 	// HTTP-bound, so we track that when ReadStruct is first called and "yield"
 	// them back to the caller through ReadStructMember
 	currentBinding *smithy.Schema
-	bindings       []*smithy.Schema
-	bindingIndex   int
+	bound          []*smithy.Schema
+	boundIndex     int
 
 	inBody     bool
 	hasPayload bool
@@ -72,14 +72,12 @@ func (d *ShapeDeserializer) ReadStruct(s *smithy.Schema) error {
 	}
 
 	d.topLevel = s
-	for _, member := range s.Members() {
-		if _, ok := smithy.SchemaTrait[*traits.HTTPPayload](member); ok {
-			d.hasPayload = true
-		}
-		if d.isBindingSet(member) {
-			d.bindings = append(d.bindings, member)
-		}
-	}
+
+	// every fact here is a function of the schema alone, resolved once
+	e := getExt(s)
+	d.hasPayload = e.hasPayload
+	d.boundIndex = 0
+	d.collectBound(e)
 
 	return nil
 }
@@ -94,9 +92,9 @@ func (d *ShapeDeserializer) ReadStructMember() (*smithy.Schema, error) {
 		return ms, err
 	}
 
-	if d.bindingIndex < len(d.bindings) {
-		member := d.bindings[d.bindingIndex]
-		d.bindingIndex++
+	if d.boundIndex < len(d.bound) {
+		member := d.bound[d.boundIndex]
+		d.boundIndex++
 		d.currentBinding = member
 		return member, nil
 	}
@@ -353,9 +351,9 @@ func (d *ShapeDeserializer) ReadMap(s *smithy.Schema) error {
 	d.prefixValue = ph.Prefix
 	d.prefixKeyIdx = 0
 
-	canon := http.CanonicalHeaderKey(ph.Prefix)
+	canon := getExt(s).name
 	for name := range d.response.Header {
-		if len(name) > len(canon) && strings.EqualFold(name[:len(canon)], canon) {
+		if prefixMatches(name, canon) {
 			d.prefixKeys = append(d.prefixKeys, strings.ToLower(name[len(canon):]))
 		}
 	}
@@ -399,30 +397,45 @@ func (d *ShapeDeserializer) isCurrentBinding(schema *smithy.Schema) bool {
 	return schema != nil && schema == d.currentBinding
 }
 
-func (d *ShapeDeserializer) isBindingSet(schema *smithy.Schema) bool {
-	if name, ok := isHTTPHeader(schema); ok {
-		return len(d.response.Header.Values(name)) > 0
-	}
-
-	if trait, ok := isHTTPPrefixHeaders(schema); ok {
-		canon := http.CanonicalHeaderKey(trait.Prefix)
+// collectBound gathers the top-level members this particular response actually
+// binds.
+//
+// The scalar-header pass is driven by the response rather than the schema: a
+// response carries a few of the headers a shape declares, so we walk what
+// arrived and look each name up, instead of asking "is it set?" once per
+// declared member. That also means no header name is canonicalized here --
+// net/http already stores them canonical, which is how the map is keyed.
+func (d *ShapeDeserializer) collectBound(e *bindingExt) {
+	if len(e.scalarHeaders) > 0 {
 		for name := range d.response.Header {
-			if len(name) > len(canon) && strings.EqualFold(name[:len(canon)], canon) {
-				return true
+			if m, ok := e.scalarHeaders[name]; ok {
+				d.bound = append(d.bound, m)
 			}
 		}
-		return false
 	}
 
-	if _, ok := smithy.SchemaTrait[*traits.HTTPResponseCode](schema); ok {
-		return true
+	for _, mb := range e.listHeaders {
+		if len(d.response.Header.Values(mb.name)) > 0 {
+			d.bound = append(d.bound, mb.schema)
+		}
 	}
 
-	if _, ok := smithy.SchemaTrait[*traits.HTTPPayload](schema); ok {
-		return len(d.payload) > 0
+	for _, mb := range e.prefixHeaders {
+		for name := range d.response.Header {
+			if prefixMatches(name, mb.name) {
+				d.bound = append(d.bound, mb.schema)
+				break
+			}
+		}
 	}
 
-	return false
+	if e.responseCode != nil {
+		d.bound = append(d.bound, e.responseCode)
+	}
+
+	if e.payload != nil && len(d.payload) > 0 {
+		d.bound = append(d.bound, e.payload)
+	}
 }
 
 func (d *ShapeDeserializer) readHeaderString(s *smithy.Schema) (string, error) {

@@ -179,14 +179,14 @@ func (s *ShapeSerializer) resolveBinding(schema *smithy.Schema) (bind, string) {
 	if s.listMode == listModeQuery {
 		return bindQueryList, s.listName
 	}
-	if name, ok := isHTTPHeader(schema); ok {
-		return bindHeader, name
-	}
-	if isHTTPLabel(schema) {
-		return bindLabel, schema.MemberName()
-	}
-	if q, ok := isHTTPQuery(schema); ok {
-		return bindQuery, q.Name
+	// resolved once per member schema
+	switch e := getExt(schema); e.kind {
+	case bindKindHeader:
+		return bindHeader, e.name
+	case bindKindLabel:
+		return bindLabel, e.name
+	case bindKindQuery:
+		return bindQuery, e.name
 	}
 	return bindBody, ""
 }
@@ -199,11 +199,14 @@ func (s *ShapeSerializer) Bytes() []byte {
 }
 
 func isHTTPHeader(schema *smithy.Schema) (string, bool) {
-	h, ok := smithy.SchemaTrait[*traits.HTTPHeader](schema)
-	if !ok {
+	if schema == nil {
 		return "", false
 	}
-	return http.CanonicalHeaderKey(h.Name), true
+	e := getExt(schema)
+	if e.kind != bindKindHeader {
+		return "", false
+	}
+	return e.name, true
 }
 
 func isHTTPLabel(schema *smithy.Schema) bool {
@@ -231,12 +234,7 @@ func isHTTPQueryParams(schema *smithy.Schema) bool {
 }
 
 func hasBodyMembers(schema *smithy.Schema) bool {
-	for _, member := range schema.Members() {
-		if !isHTTPBound(member) {
-			return true
-		}
-	}
-	return false
+	return getExt(schema).hasBodyMembers
 }
 
 func isHTTPBound(schema *smithy.Schema) bool {
