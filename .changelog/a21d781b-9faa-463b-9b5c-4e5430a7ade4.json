@@ -1,0 +1,9 @@
+{
+    "id": "a21d781b-9faa-463b-9b5c-4e5430a7ade4",
+    "type": "bugfix",
+    "description": "Restore draining the HTTP response body in `CloseResponseBody` to avoid TCP connection leak.",
+    "collapse": false,
+    "modules": [
+        "."
+    ]
+}
