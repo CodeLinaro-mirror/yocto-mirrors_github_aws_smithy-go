@@ -1,6 +1,7 @@
 package json
 
 import (
+	"bytes"
 	"encoding/json"
 	"io"
 	"strings"
@@ -51,4 +52,25 @@ func SanitizeErrorCode(code string) string {
 		code = code[idx+1:]
 	}
 	return code
+}
+
+// EventStreamErrorInfo extracts the error code and message from a JSON
+// exception payload.
+func EventStreamErrorInfo(payload []byte) (string, string, error) {
+	if len(payload) == 0 {
+		return "", "", nil
+	}
+
+	decoder := json.NewDecoder(bytes.NewReader(payload))
+	decoder.UseNumber()
+	info, err := GetProtocolErrorInfo(decoder)
+	if err != nil {
+		return "", "", err
+	}
+
+	var code string
+	if typ, ok := ResolveProtocolErrorType("", info); ok {
+		code = SanitizeErrorCode(typ)
+	}
+	return code, info.Message, nil
 }

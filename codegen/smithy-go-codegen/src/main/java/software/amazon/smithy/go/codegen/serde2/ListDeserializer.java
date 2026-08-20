@@ -39,6 +39,7 @@ public class ListDeserializer implements Writable {
     private void renderDense(GoWriter writer) {
         writer.writeGoTemplate("""
                 func deserialize$shapeName:L(d smithy.ShapeDeserializer, s *smithy.Schema, v *$symbol:T) error {
+                    *v = make($symbol:T, 0)
                     var vv $memberSymbol:T
                     return smithy.ReadList(d, s, func() error {
                         $zeroValue:W
@@ -69,6 +70,7 @@ public class ListDeserializer implements Writable {
     private void renderSparse(GoWriter writer) {
         writer.writeGoTemplate("""
                 func deserialize$shapeName:L(d smithy.ShapeDeserializer, s *smithy.Schema, v *$symbol:T) error {
+                    *v = make($symbol:T, 0)
                     return smithy.ReadList(d, s, func() error {
                         if isNil, err := d.ReadNil(s.ListMember()); err != nil {
                             return err
