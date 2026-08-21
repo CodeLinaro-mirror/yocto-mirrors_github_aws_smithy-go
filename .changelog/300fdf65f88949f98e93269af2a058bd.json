@@ -1,9 +1,0 @@
-{
-    "id": "300fdf65-f889-49f9-8e93-269af2a058bd",
-    "type": "bugfix",
-    "description": "Fix an event stream not being closed when its connection is lost, which would cause a caller writing to the stream to block indefinitely.",
-    "collapse": false,
-    "modules": [
-        "."
-    ]
-}

@@ -1,9 +1,0 @@
-{
-    "id": "fce3a10f-ade6-46db-85d9-9a3bb7edcafe",
-    "type": "bugfix",
-    "description": "Fix deserialization of an empty list producing a nil slice instead of an empty one.",
-    "collapse": false,
-    "modules": [
-        "."
-    ]
-}
