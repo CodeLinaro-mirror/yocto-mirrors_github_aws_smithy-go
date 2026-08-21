@@ -191,6 +191,10 @@ public final class EventStreamGenerator {
                 func (w *$impl:L) Err() error {
                     return w.writer.Err()
                 }
+
+                func (w *$impl:L) ErrorSet() <-chan struct{} {
+                    return w.writer.ErrorSet()
+                }
                 """,
                 MapUtils.of(
                         "impl", implName,
@@ -228,6 +232,9 @@ public final class EventStreamGenerator {
                     reader $esReader:P
                     ch     chan $union:T
                     done   chan struct{}
+                    closed chan struct{}
+
+                    closeOnce $syncOnce:T
                 }
 
                 var _ $iface:L = (*$impl:L)(nil)
@@ -237,12 +244,14 @@ public final class EventStreamGenerator {
                         reader: reader,
                         ch:     make(chan $union:T),
                         done:   make(chan struct{}),
+                        closed: make(chan struct{}),
                     }
                     go r.pipe()
                     return r
                 }
 
                 func (r *$impl:L) pipe() {
+                    defer close(r.closed)
                     defer close(r.ch)
                     for event := range r.reader.Events() {
                         var ev $union:T
@@ -264,12 +273,18 @@ public final class EventStreamGenerator {
                 }
 
                 func (r *$impl:L) Close() error {
-                    close(r.done)
+                    r.closeOnce.Do(func() {
+                        close(r.done)
+                    })
                     return r.reader.Close()
                 }
 
                 func (r *$impl:L) Err() error {
                     return r.reader.Err()
+                }
+
+                func (r *$impl:L) Closed() <-chan struct{} {
+                    return r.closed
                 }
                 """,
                 MapUtils.of(
@@ -277,6 +292,7 @@ public final class EventStreamGenerator {
                         "iface", ifaceName,
                         "newImpl", "new" + StringUtils.capitalize(implName),
                         "esReader", SmithyGoDependency.SMITHY_HTTP_TRANSPORT.pointableSymbol("EventStreamReader"),
+                        "syncOnce", SmithyGoDependency.SYNC.valueSymbol("Once"),
                         "union", unionSymbol,
                         "cases", (Writable) (GoWriter w) -> {
                             for (var member : members) {

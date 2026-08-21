@@ -1,0 +1,9 @@
+{
+    "id": "67db039b-2eff-4af7-be73-3e95b79ad0c5",
+    "type": "bugfix",
+    "description": "Fix a generic event stream exception not carrying the error code and message from its payload.",
+    "collapse": false,
+    "modules": [
+        "."
+    ]
+}

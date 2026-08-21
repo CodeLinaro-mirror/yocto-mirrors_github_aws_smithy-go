@@ -48,6 +48,7 @@ func new(version string, service *smithy.ServiceSchema, opts ...func(*ProtocolOp
 			Serializer:   func() smithy.ShapeSerializer { return internaljson.NewShapeSerializer() },
 			Deserializer: func(p []byte) smithy.ShapeDeserializer { return internaljson.NewShapeDeserializer(p) },
 			ContentType:  "application/json",
+			ErrorInfo:    internaljson.EventStreamErrorInfo,
 		},
 	}
 }
