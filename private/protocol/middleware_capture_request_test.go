@@ -32,14 +32,13 @@ func TestAddCaptureRequestMiddleware(t *testing.T) {
 					Path:     "test/path",
 					RawQuery: "language=us&region=us-west+east",
 				},
-				ContentLength: 100,
 			},
 			ExpectRequest: &http.Request{
 				Method: "PUT",
 				Header: map[string][]string{
 					"Foo":            {"bar", "too"},
 					"Checksum":       {"SHA256"},
-					"Content-Length": {"100"},
+					"Content-Length": {"12"},
 				},
 				URL: &url.URL{
 					Path:    "test/path",
