@@ -101,7 +101,6 @@ public final class EndpointResolverGenerator {
         if (ruleset.isPresent()) {
             return generateResolverType(generateResolveMethodBody(ruleset.get()));
         } else {
-            LOGGER.warning("service does not have modeled endpoint rules");
             return generateEmptyRules();
         }
     }

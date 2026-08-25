@@ -130,6 +130,7 @@ public interface GoIntegration extends SmithyIntegration<GoSettings, GoWriter, G
      *   {@link GoSettings} to perform the actual writing to the file.
      * @deprecated use {@link #writeAdditionalFiles(GoCodegenContext)}.
      */
+    @Deprecated
     default void writeAdditionalFiles(
             GoSettings settings,
             Model model,
@@ -148,6 +149,7 @@ public interface GoIntegration extends SmithyIntegration<GoSettings, GoWriter, G
      * @param goDelegator GoDelegator used to manage writer for the file.
      * @deprecated use {@link #writeAdditionalFiles(GoCodegenContext)}.
      */
+    @Deprecated
     default void writeAdditionalFiles(
             GoSettings settings,
             Model model,

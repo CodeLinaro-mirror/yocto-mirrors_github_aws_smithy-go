@@ -276,6 +276,9 @@ subprojects {
 
         tasks.withType<Javadoc> {
             options.encoding = "UTF-8"
+            // Javadoc is published as an artifact, but documentation lint is not enforced by this build.
+            (options as org.gradle.external.javadoc.StandardJavadocDocletOptions)
+                .addStringOption("Xdoclint:none", "-quiet")
         }
 
         // Use Junit5's test runner.
@@ -318,9 +321,6 @@ subprojects {
                 attributes["Automatic-Module-Name"] = subproject.extra["moduleName"]
             }
         }
-
-        // Always run javadoc after build.
-        tasks["build"].finalizedBy(tasks["javadoc"])
 
         /*
          * Maven
@@ -420,9 +420,9 @@ subprojects {
         // Configure jacoco to generate an HTML report.
         tasks.jacocoTestReport {
             reports {
-                xml.isEnabled = false
-                csv.isEnabled = false
-                html.destination = file("$buildDir/reports/jacoco")
+                xml.required.set(false)
+                csv.required.set(false)
+                html.outputLocation.set(layout.buildDirectory.dir("reports/jacoco"))
             }
         }
 
@@ -439,8 +439,8 @@ subprojects {
         tasks.withType<com.github.spotbugs.snom.SpotBugsTask>().configureEach {
             effort.set(com.github.spotbugs.snom.Effort.MAX)
             excludeFilter.set(file("${project.rootDir}/config/spotbugs/filter.xml"))
-            reports.maybeCreate("xml").isEnabled = false
-            reports.maybeCreate("html").isEnabled = true
+            reports.maybeCreate("xml").required.set(false)
+            reports.maybeCreate("html").required.set(true)
         }
     }
 }

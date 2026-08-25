@@ -226,7 +226,7 @@ public final class DocumentationConverter {
 
         private void writeInline(String contents, String... args) {
             // write text at the current line, update last line string
-            String formatText = writer.format(contents, args);
+            String formatText = writer.format(contents, (Object[]) args);
             writer.writeInlineWithNoFormatting(formatText);
             formatText = lastLineString + formatText;
             lastLineString = formatText.substring(formatText.lastIndexOf("\n") + 1);

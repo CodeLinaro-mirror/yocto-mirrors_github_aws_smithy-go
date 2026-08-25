@@ -205,7 +205,9 @@ final class CodegenVisitor extends ShapeVisitor.Default<Void> {
             protocolTrait = settings.resolveServiceProtocol(serviceIndex, service, generators.keySet());
             settings.setProtocol(protocolTrait);
         } catch (UnresolvableProtocolException e) {
-            LOGGER.warning("Unable to find a protocol generator for " + service.getId() + ": " + e.getMessage());
+            if (settings.useLegacySerde()) {
+                LOGGER.warning("Unable to find a protocol generator for " + service.getId() + ": " + e.getMessage());
+            }
             protocolTrait = null;
         }
 

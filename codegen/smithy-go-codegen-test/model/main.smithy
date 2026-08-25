@@ -31,7 +31,7 @@ resource Forecast {
 
 resource CityImage {
     identifiers: { cityId: CityId },
-    read: GetCityImage,
+    operations: [GetCityImage],
 }
 
 // "pattern" is a trait.
@@ -41,7 +41,7 @@ string CityId
 @readonly
 @waitable(
     CityExists: {
-        description: "Waits until a city has been created",
+        documentation: "Waits until a city has been created",
         acceptors: [
             // Fail-fast if the thing transitions to a "failed" state.
             {
@@ -93,13 +93,13 @@ string CityId
 operation GetCity {
     input: GetCityInput,
     output: GetCityOutput,
-    errors: [NoSuchResource]
+    errors: [NoSuchResource, UnModeledError]
 }
 
 @http(method: "POST", uri: "/BadName/{__123abc}")
 operation __789BadName {
     input: __BadNameCont,
-    output: __BadNameCont,
+    output: __BadNameOutput,
     errors: [NoSuchResource]
 }
 
@@ -172,6 +172,12 @@ structure __BadNameCont {
     Member: __456efg,
 }
 
+structure __BadNameOutput {
+    __123abc: String,
+
+    Member: __456efg,
+}
+
 structure __456efg {
     __123foo: String,
 }
@@ -208,6 +214,11 @@ structure NoSuchResource {
     message: String,
 }
 
+@error("client")
+structure UnModeledError {
+    message: String,
+}
+
 apply NoSuchResource @httpResponseTests([
     {
         id: "WriteNoSuchResourceAssertions",
@@ -233,7 +244,7 @@ apply NoSuchResource @httpResponseTests([
 @paginated(items: "items")
 @waitable(
     "ListContainsCity": {
-        description: "Wait until ListCities operation response matches a given state",
+        documentation: "Wait until ListCities operation response matches a given state",
         acceptors: [
             // failure in case all items returned match to seattle
             {
@@ -419,7 +430,6 @@ map StringMap {
     value: String,
 }
 
-@readonly
 @http(method: "POST", uri: "/cities/{cityId}/image")
 operation GetCityImage {
     input: GetCityImageInput,
