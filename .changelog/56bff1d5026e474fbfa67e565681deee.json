@@ -1,8 +1,0 @@
-{
-    "id": "56bff1d5-026e-474f-bfa6-7e565681deee",
-    "type": "feature",
-    "description": "Set `Content-Length` inline when the request body is set via `SetStream`. The `ComputeContentLength` middleware is now deprecated.",
-    "modules": [
-        "."
-    ]
-}
